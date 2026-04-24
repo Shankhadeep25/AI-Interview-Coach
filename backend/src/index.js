@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const connectDB = require('./config/database');
 
 const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyze');
@@ -50,16 +50,14 @@ app.use('/api/interview', aiLimiter, interviewRoutes);
 
 // ─── MongoDB Connection & Server Start ───────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-interview-coach';
 
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-    });
-  })
+
+connectDB().then(() => {
+  console.log('✅ Connected to MongoDB');
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+})
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
