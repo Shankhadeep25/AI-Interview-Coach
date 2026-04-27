@@ -78,4 +78,10 @@ export const interview = {
     api.post('/api/interview/complete', { sessionId }),
 };
 
+// ─── Contact ─────────────────────────────────────────────────────────────────
+export const contact = {
+  send: (data: { fullName: string; email: string; subject: string; message: string }) =>
+    api.post('/api/contact', data),
+};
+
 export default api;
