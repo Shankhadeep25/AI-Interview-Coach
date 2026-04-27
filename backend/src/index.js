@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const connectDB = require('./config/database');
-
+const contactRoute = require('./routes/contact');
 const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyze');
 const interviewRoutes = require('./routes/interview');
@@ -53,7 +53,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/analyze', aiLimiter, analyzeRoutes);
 app.use('/api/interview', aiLimiter, interviewRoutes);
-
+app.use('/api', contactRoute);
 // ─── MongoDB Connection & Server Start ───────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
