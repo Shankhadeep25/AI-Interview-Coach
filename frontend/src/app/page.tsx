@@ -1,6 +1,5 @@
-'use client';
-
 import Link from 'next/link';
+import HeroCTA from '@/components/HeroCTA';
 import {
   FileText,
   MessageSquare,
@@ -92,13 +91,7 @@ export default function LandingPage() {
               Analyze your resume, practice with personalized interview questions, and get instant AI feedback — all in one platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/register"
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold text-lg hover:shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 animate-pulseGlow flex items-center gap-2"
-              >
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
-              </Link>
+              <HeroCTA />
               <a
                 href="#features"
                 className="px-8 py-3.5 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-white/5 transition-all"
@@ -195,15 +188,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ─── Footer ────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} AI Interview Coach. Built with ❤️ and Gemini AI.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

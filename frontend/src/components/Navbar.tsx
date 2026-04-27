@@ -13,12 +13,13 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Re-fetch user on route changes (e.g. after login/register redirects)
   useEffect(() => {
     auth
       .me()
       .then((res) => setUser(res.data))
       .catch(() => setUser(null));
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -50,6 +51,12 @@ export default function Navbar() {
 
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-4">
+            <Link
+              href="/about"
+              className="text-sm text-slate-300 hover:text-white transition-colors"
+            >
+              About Us
+            </Link>
             {user ? (
               <>
                 <Link
@@ -102,6 +109,13 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden pb-4 border-t border-white/10 mt-2 pt-4 space-y-3">
+            <Link
+              href="/about"
+              onClick={() => setMenuOpen(false)}
+              className="block text-sm text-slate-300 hover:text-white"
+            >
+              About Us
+            </Link>
             {user ? (
               <>
                 <Link
