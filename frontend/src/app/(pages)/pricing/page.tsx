@@ -1,59 +1,54 @@
-import Link from 'next/link';
-import { Check, Sparkles, ArrowRight, Zap, Crown } from 'lucide-react';
-import type { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Pricing — AI Interview Coach',
-  description:
-    'Choose the plan that fits your interview preparation needs. Free and Pro plans available with AI-powered resume analysis, mock interviews, and feedback.',
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Check, Sparkles, ArrowRight, Zap, Crown, Loader2 } from 'lucide-react';
+import { auth } from '@/lib/api';
+import type { User } from '@/lib/types';
+import PayButton from '@/components/PayButton';
+
+const features = {
+  free: [
+    '5 analysis sessions per month',
+    'Resume-JD match scoring',
+    'AI-generated interview questions',
+    'Basic answer evaluation',
+    'Cover letter generation',
+    'Community support',
+  ],
+  pro: [
+    'Unlimited analysis sessions',
+    'Resume-JD match scoring',
+    'AI-generated interview questions',
+    'Detailed answer evaluation with model answers',
+    'Priority cover letter generation',
+    'Session history & analytics dashboard',
+    'Priority email support',
+    'Early access to new features',
+  ],
 };
 
-const plans = [
-  {
-    name: 'Free',
-    price: '₹0',
-    period: 'forever',
-    description: 'Get started with essential interview prep tools at no cost.',
-    icon: Zap,
-    gradient: 'from-slate-500 to-slate-400',
-    borderColor: 'border-white/10',
-    features: [
-      '5 analysis sessions per month',
-      'Resume-JD match scoring',
-      'AI-generated interview questions',
-      'Basic answer evaluation',
-      'Cover letter generation',
-      'Community support',
-    ],
-    cta: 'Get Started Free',
-    href: '/register',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: '₹499',
-    period: '/month',
-    description: 'Unlimited access for serious job seekers who want every edge.',
-    icon: Crown,
-    gradient: 'from-indigo-500 to-violet-500',
-    borderColor: 'border-indigo-500/40',
-    features: [
-      'Unlimited analysis sessions',
-      'Resume-JD match scoring',
-      'AI-generated interview questions',
-      'Detailed answer evaluation with model answers',
-      'Priority cover letter generation',
-      'Session history & analytics dashboard',
-      'Priority email support',
-      'Early access to new features',
-    ],
-    cta: 'Upgrade to Pro',
-    href: '/register',
-    popular: true,
-  },
-];
-
 export default function PricingPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user is logged in to show the right CTA
+  useEffect(() => {
+    auth
+      .me()
+      .then((res) => setUser(res.data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Re-fetch user after successful payment to reflect plan change
+  const handlePaymentSuccess = () => {
+    auth
+      .me()
+      .then((res) => setUser(res.data))
+      .catch(() => {});
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -78,63 +73,91 @@ export default function PricingPage() {
 
       {/* Plans */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative bg-slate-900/50 border ${plan.borderColor} rounded-2xl p-8 flex flex-col ${
-                plan.popular
-                  ? 'ring-2 ring-indigo-500/50 shadow-xl shadow-indigo-500/10'
-                  : ''
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-semibold uppercase tracking-wider">
-                  Most Popular
-                </div>
-              )}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* ── Free Plan ──────────────────────────────────────────── */}
+            <div className="relative bg-slate-900/50 border border-white/10 rounded-2xl p-8 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
-                <div
-                  className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plan.gradient} flex items-center justify-center`}
-                >
-                  <plan.icon className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-400 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white">{plan.name}</h2>
+                <h2 className="text-xl font-bold text-white">Free</h2>
               </div>
               <div className="mb-2">
-                <span className="text-4xl font-extrabold text-white">
-                  {plan.price}
-                </span>
-                <span className="text-slate-400 text-sm ml-1">
-                  {plan.period}
-                </span>
+                <span className="text-4xl font-extrabold text-white">₹0</span>
+                <span className="text-slate-400 text-sm ml-1">forever</span>
               </div>
-              <p className="text-sm text-slate-400 mb-6">{plan.description}</p>
+              <p className="text-sm text-slate-400 mb-6">
+                Get started with essential interview prep tools at no cost.
+              </p>
               <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2.5 text-sm text-slate-300"
-                  >
+                {features.free.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
                     <Check className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                    {feature}
+                    {f}
                   </li>
                 ))}
               </ul>
               <Link
-                href={plan.href}
-                className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-all text-sm ${
-                  plan.popular
-                    ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:shadow-lg hover:shadow-indigo-500/25'
-                    : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-                }`}
+                href="/register"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold text-sm hover:bg-white/10 transition-all"
               >
-                {plan.cta}
+                Get Started Free
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-          ))}
-        </div>
+
+            {/* ── Pro Plan ───────────────────────────────────────────── */}
+            <div className="relative bg-slate-900/50 border border-indigo-500/40 rounded-2xl p-8 flex flex-col ring-2 ring-indigo-500/50 shadow-xl shadow-indigo-500/10">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-semibold uppercase tracking-wider">
+                Most Popular
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Pro</h2>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-extrabold text-white">₹499</span>
+                <span className="text-slate-400 text-sm ml-1">/month</span>
+              </div>
+              <p className="text-sm text-slate-400 mb-6">
+                Unlimited access for serious job seekers who want every edge.
+              </p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {features.pro.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Show PayButton for logged-in users, register link for guests */}
+              {user ? (
+                <PayButton
+                  userName={user.name}
+                  userEmail={user.email}
+                  userPlan={user.plan}
+                  onSuccess={handlePaymentSuccess}
+                />
+              ) : (
+                <Link
+                  href="/register"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold text-sm hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                >
+                  Upgrade to Pro
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* FAQ note */}
         <div className="mt-16 text-center">

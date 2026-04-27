@@ -8,6 +8,7 @@ const contactRoute = require('./routes/contact');
 const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyze');
 const interviewRoutes = require('./routes/interview');
+const paymentRoutes = require('./routes/payment');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/analyze', aiLimiter, analyzeRoutes);
 app.use('/api/interview', aiLimiter, interviewRoutes);
+app.use('/api/payment', paymentRoutes);
 app.use('/api', contactRoute);
 // ─── MongoDB Connection & Server Start ───────────────────────────────────────
 const PORT = process.env.PORT || 5000;

@@ -78,6 +78,17 @@ export const interview = {
     api.post('/api/interview/complete', { sessionId }),
 };
 
+// ─── Payment ─────────────────────────────────────────────────────────────────
+export const payment = {
+  createOrder: () => api.post('/api/payment/create-order'),
+
+  verifyPayment: (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) => api.post('/api/payment/verify-payment', data),
+};
+
 // ─── Contact ─────────────────────────────────────────────────────────────────
 export const contact = {
   send: (data: { fullName: string; email: string; subject: string; message: string }) =>
