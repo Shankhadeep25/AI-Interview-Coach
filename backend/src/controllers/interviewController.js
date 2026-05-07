@@ -8,10 +8,6 @@ const generateQuestions = async (req, res) => {
   try {
     const { sessionId } = req.body;
 
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required.' });
-    }
-
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found.' });
@@ -47,10 +43,6 @@ const generateQuestions = async (req, res) => {
 const evaluate = async (req, res) => {
   try {
     const { sessionId, questionId, question, type, userAnswer, idealAnswerPoints } = req.body;
-
-    if (!sessionId || !questionId || !question || !userAnswer) {
-      return res.status(400).json({ error: 'sessionId, questionId, question, and userAnswer are required.' });
-    }
 
     const session = await Session.findById(sessionId);
     if (!session) {
@@ -91,10 +83,6 @@ const evaluate = async (req, res) => {
 const completeSession = async (req, res) => {
   try {
     const { sessionId } = req.body;
-
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required.' });
-    }
 
     const session = await Session.findById(sessionId);
     if (!session) {

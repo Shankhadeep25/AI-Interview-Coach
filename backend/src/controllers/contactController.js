@@ -12,11 +12,6 @@ const transporter = nodemailer.createTransport({
 const contact = async (req, res) => {
     const { fullName, email, subject, message } = req.body;
 
-    // Basic validation
-    if (!fullName || !email || !subject || !message) {
-        return res.status(400).json({ error: 'All fields are required' });
-    }
-
     const mailOptions = {
         from: `"${fullName}" <${process.env.EMAIL_USER}>`,  // sender shown in inbox
         to: process.env.EMAIL_USER,                          // YOUR inbox

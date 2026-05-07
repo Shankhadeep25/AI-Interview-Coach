@@ -9,10 +9,6 @@ const analyze = async (req, res) => {
   try {
     const { jobTitle, companyName, jobDescription, resumeText } = req.body;
 
-    if (!jobTitle || !companyName || !jobDescription || !resumeText) {
-      return res.status(400).json({ error: 'All fields are required: jobTitle, companyName, jobDescription, resumeText.' });
-    }
-
     // Free plan limit check
     const user = await User.findById(req.user._id);
     if (user.plan === 'free' && user.sessionsUsed >= 5) {
@@ -51,10 +47,6 @@ const analyze = async (req, res) => {
 const coverLetter = async (req, res) => {
   try {
     const { sessionId } = req.body;
-
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId is required.' });
-    }
 
     const session = await Session.findById(sessionId);
     if (!session) {
