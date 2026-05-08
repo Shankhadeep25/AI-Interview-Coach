@@ -10,7 +10,7 @@ function getCookieOptions() {
   return {
     httpOnly: true,                        // JS cannot access this cookie
     secure: isProduction,                  // HTTPS only in production
-    sameSite: isProduction ? 'Strict' : 'Lax', // CSRF protection
+    sameSite: isProduction ? 'None' : 'Lax', // 'None' required for cross-domain cookies
     maxAge: 7 * 24 * 60 * 60 * 1000,      // 7 days in ms
     path: '/',
   };
@@ -106,7 +106,7 @@ const logout = async (_req, res) => {
     res.clearCookie(COOKIE_NAME, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'Strict' : 'Lax',
+      sameSite: isProduction ? 'None' : 'Lax',
       path: '/',
     });
     res.json({ message: 'Logged out successfully.' });
