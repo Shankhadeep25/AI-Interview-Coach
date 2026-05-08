@@ -40,7 +40,6 @@ AI Interview Coach solves a real problem: most candidates prepare for interviews
 - [API Documentation](#-api-documentation)
 - [Razorpay Integration](#-razorpay-integration)
 - [Gemini AI Usage](#-gemini-ai-usage)
-- [Screenshots](#-screenshots)
 - [Testing](#-testing)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -421,32 +420,6 @@ The application uses **Google Gemini 2.5 Flash** through the `@google/generative
 All Gemini responses are returned as structured JSON. The service layer includes a `parseGeminiJSON()` utility that strips markdown code fences before parsing, ensuring robust handling of Gemini's response format variations.
 
 > **🔑 Get your API key:** Visit [aistudio.google.com](https://aistudio.google.com/apikey) to generate a free Gemini API key.
-
----
-
-## 📸 Screenshots
-
-<!-- Replace these placeholders with actual screenshots once available -->
-
-### Landing Page
-![Landing Page](screenshots/landing.png)
-
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-
-### Resume Analysis
-![Resume Analysis](screenshots/analysis.png)
-
-### Interview Practice
-![Interview Practice](screenshots/interview.png)
-
-### Answer Evaluation
-![Answer Evaluation](screenshots/evaluation.png)
-
-### Payment Checkout
-![Payment Flow](screenshots/payment.png)
-
-> **📷 Note:** Screenshots will be added once the application is deployed. To see the UI locally, follow the [Getting Started](#-getting-started) instructions.
 
 ---
 
