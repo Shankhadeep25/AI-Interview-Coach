@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -9,7 +8,6 @@ import { LogIn, Loader2 } from 'lucide-react';
 import { AxiosError } from 'axios';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
 
