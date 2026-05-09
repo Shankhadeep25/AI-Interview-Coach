@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// In production, requests go through Vercel rewrites (same-domain, no cookie issues).
+// In local dev, requests go directly to the backend at localhost:5000.
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: process.env.NODE_ENV === 'production' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'),
   withCredentials: true, // send httpOnly cookies with every request
   headers: {
     'Content-Type': 'application/json',

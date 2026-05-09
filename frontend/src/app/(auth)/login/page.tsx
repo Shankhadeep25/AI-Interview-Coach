@@ -19,7 +19,7 @@ export default function LoginPage() {
     try {
       await auth.login(form.email, form.password);
       toast.success('Logged in successfully!');
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       const msg = err instanceof AxiosError ? err.response?.data?.error : 'Login failed';
       toast.error(msg || 'Login failed');
