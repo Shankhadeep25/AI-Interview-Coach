@@ -1,5 +1,24 @@
 const mongoose = require('mongoose');
 
+/**
+ * Explicit subdocument schema for interview results.
+ * Using full { type: ... } syntax (not shorthand) to avoid a Mongoose 8.x
+ * bug where inline shorthand arrays like [{ field: String }] are miscast
+ * as [String], causing a CastError on session.results.push({...}).
+ */
+const resultSchema = new mongoose.Schema(
+  {
+    questionId:  { type: String },
+    question:    { type: String },
+    type:        { type: String },
+    userAnswer:  { type: String },
+    score:       { type: Number, min: 0, max: 10 },
+    feedback:    { type: String },
+    betterAnswer:{ type: String },
+  },
+  { _id: false }   // no extra _id per result entry
+);
+
 const sessionSchema = new mongoose.Schema(
   {
     userId: {
@@ -36,17 +55,7 @@ const sessionSchema = new mongoose.Schema(
     questions: {
       type: mongoose.Schema.Types.Mixed,
     },
-    results: [
-      {
-        questionId: String,
-        question: String,
-        type: String,
-        userAnswer: String,
-        score: { type: Number, min: 0, max: 10 },
-        feedback: String,
-        betterAnswer: String,
-      },
-    ],
+    results: [resultSchema],   // ← explicit subdocument schema, not inline
     averageScore: {
       type: Number,
     },
@@ -63,3 +72,4 @@ const sessionSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model('Session', sessionSchema);
+
