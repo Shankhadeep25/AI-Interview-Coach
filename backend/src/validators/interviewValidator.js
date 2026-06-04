@@ -38,4 +38,22 @@ const completeSchema = z.object({
     .regex(objectIdRegex, 'Invalid session ID format'),
 });
 
-module.exports = { generateSchema, evaluateSchema, completeSchema };
+// ── Phase 1: Conversational Chat Schemas ─────────────────────────────────────
+
+const chatStartSchema = z.object({
+  sessionId: z
+    .string({ required_error: 'sessionId is required' })
+    .regex(objectIdRegex, 'Invalid session ID format'),
+});
+
+const chatMessageSchema = z.object({
+  sessionId: z
+    .string({ required_error: 'sessionId is required' })
+    .regex(objectIdRegex, 'Invalid session ID format'),
+  message: z
+    .string({ required_error: 'message is required' })
+    .min(1, 'message cannot be empty')
+    .max(10000, 'message must be at most 10,000 characters'),
+});
+
+module.exports = { generateSchema, evaluateSchema, completeSchema, chatStartSchema, chatMessageSchema };

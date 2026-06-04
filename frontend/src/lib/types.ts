@@ -6,6 +6,13 @@ export interface User {
   sessionsUsed: number;
 }
 
+// A single turn in a Gemini multi-turn conversation.
+// Mirrors the chatMessageSchema in Session.js exactly.
+export interface ChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
 export interface AnalysisResult {
   matchScore: number;
   summary: string;
@@ -54,7 +61,8 @@ export interface Session {
   }[];
   averageScore: number;
   coverLetter: string;
-  status: 'analyzed' | 'in_progress' | 'completed';
+  chatHistory?: ChatMessage[];
+  status: 'analyzed' | 'in_progress' | 'chat_in_progress' | 'completed';
   createdAt: string;
 }
 

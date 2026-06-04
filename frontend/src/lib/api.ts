@@ -78,6 +78,17 @@ export const interview = {
 
   complete: (sessionId: string) =>
     api.post('/api/interview/complete', { sessionId }),
+
+  // ── Phase 1: conversational chat ───────────────────────────────────────────
+  // chatStart: initialise or resume a multi-turn interview session.
+  // Returns { reply: string, isResumed: boolean, isComplete: boolean }
+  chatStart: (sessionId: string) =>
+    api.post('/api/interview/chat/start', { sessionId }),
+
+  // chatMessage: send the candidate's answer, receive AI's next message.
+  // Returns { reply: string, isComplete: boolean }
+  chatMessage: (sessionId: string, message: string) =>
+    api.post('/api/interview/chat/message', { sessionId, message }),
 };
 
 // ─── Payment ─────────────────────────────────────────────────────────────────

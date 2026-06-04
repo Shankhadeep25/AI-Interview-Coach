@@ -6,7 +6,20 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // ── System Instruction ───────────────────────────────────────────────────────
 // Persistent AI persona injected at the model level — not repeated in prompts.
 // This is cheaper (fewer tokens per call) and produces more consistent behavior.
-const SYSTEM_INSTRUCTION = `You are a senior technical recruiter and interview coach with 15+ years of experience at top-tier tech companies. You are professional, specific, and constructive. Your evaluations are data-driven, your feedback is always actionable, and you never give vague or generic responses. You help candidates understand exactly where they stand and what to do next.`;
+const SYSTEM_INSTRUCTION = `Your name is Alex. You are a senior technical recruiter and interview coach with 15+ years of experience at top-tier tech companies including Google, Amazon, and Microsoft. You are professional, specific, and constructive. Your evaluations are data-driven, your feedback is always actionable, and you never give vague or generic responses. When introducing yourself, always use the name Alex — never use placeholders like [Your Name]. You help candidates understand exactly where they stand and what to do next.`;
+
+// ── Chat Model (plain text, no JSON schema) ──────────────────────────────────
+// Used exclusively for the conversational interview mode.
+// Does NOT use responseMimeType: 'application/json' — responses are natural
+// language (questions, follow-ups, feedback prose), not structured data.
+// thinkingBudget:0 is still required for gemini-2.5-flash.
+const chatModel = genAI.getGenerativeModel({
+  model: 'gemini-2.5-flash',
+  systemInstruction: SYSTEM_INSTRUCTION,
+  generationConfig: {
+    thinkingConfig: { thinkingBudget: 0 },
+  },
+});
 
 // ── JSON Response Schemas ────────────────────────────────────────────────────
 // Structured output schemas enforce the exact JSON shape at the API level.
@@ -245,9 +258,107 @@ Also generate a compelling, personalized email subject line.`;
   }
 }
 
+// ── 5. Start a Conversational Interview Session ─────────────────────────────
+/**
+ * Called once when the user clicks "Start AI Interview".
+ * Primes the chat with the candidate's resume + JD so the AI has full context,
+ * then asks the AI to open the interview. Returns the AI's opening message
+ * and the initial chatHistory to persist in MongoDB.
+ *
+ * @param {string} resumeText
+ * @param {string} jobDescription
+ * @param {string} jobTitle
+ * @param {string} companyName
+ * @returns {{ reply: string, history: Array }}
+ */
+async function startInterviewSession(resumeText, jobDescription, jobTitle, companyName) {
+  try {
+    // The first user message primes the AI with all context.
+    // All future messages can be short (just the candidate's answers).
+    const contextMessage = `I am about to interview for the role of ${jobTitle} at ${companyName}.
+
+Here is my resume:
+${resumeText}
+
+Here is the job description:
+${jobDescription}
+
+Please begin the interview. Introduce yourself briefly as Alex, then ask your first question. Rules you must follow:
+- Ask exactly one question at a time
+- After each of my answers, give brief feedback and a score out of 10, then ask the next question
+- Ask between 5 and 7 questions total based on the role complexity
+- After your final question has been answered, give an overall assessment with a final composite score
+- IMPORTANT: At the very end of your concluding message — after the full assessment — append exactly this tag on its own line: [INTERVIEW_COMPLETE]
+- Do NOT append [INTERVIEW_COMPLETE] at any other point, only in your final concluding message`;
+
+    const chat = chatModel.startChat({ history: [] });
+    const result = await chat.sendMessage(contextMessage);
+
+    const candidate = result.response.candidates?.[0];
+    if (!candidate || candidate.finishReason === 'SAFETY') {
+      throw new Error(`Chat blocked (finishReason: ${candidate?.finishReason || 'NO_CANDIDATE'})`);
+    }
+
+    const reply = result.response.text();
+
+    // Capture the full history (includes the priming user message + AI reply)
+    // This is what we store in MongoDB and reload on the next request.
+    const history = await chat.getHistory();
+
+    return { reply, history };
+  } catch (error) {
+    throw new Error(`Failed to start interview chat: ${error.message}`);
+  }
+}
+
+// ── 6. Continue a Conversational Interview ───────────────────────────────────
+/**
+ * Called on every subsequent user message (candidate's answer to a question).
+ * Rehydrates the chat from the stored history so the AI remembers all prior
+ * context, sends the new message, and returns the updated history to save.
+ *
+ * @param {Array}  chatHistory  - The history array stored in Session.chatHistory
+ * @param {string} userMessage  - The candidate's latest answer
+ * @returns {{ reply: string, history: Array, isComplete: boolean }}
+ */
+async function sendChatMessage(chatHistory, userMessage) {
+  try {
+    // Rehydrate the chat from MongoDB-stored history.
+    // The Gemini SDK accepts the same { role, parts: [{ text }] } format
+    // that we defined in our Mongoose chatMessageSchema.
+    const chat = chatModel.startChat({ history: chatHistory });
+    const result = await chat.sendMessage(userMessage);
+
+    const candidate = result.response.candidates?.[0];
+    if (!candidate || candidate.finishReason === 'SAFETY') {
+      throw new Error(`Chat blocked (finishReason: ${candidate?.finishReason || 'NO_CANDIDATE'})`);
+    }
+
+    const reply = result.response.text();
+    const history = await chat.getHistory();
+
+    // Detect interview completion via the structured end signal [INTERVIEW_COMPLETE].
+    // The AI is explicitly instructed to append this tag — and only this tag — in its
+    // final concluding message. This is deterministic: no false positives from mid-interview
+    // phrases, no missed endings from unexpected AI wording.
+    const END_SIGNAL = '[INTERVIEW_COMPLETE]';
+    const isComplete = reply.includes(END_SIGNAL);
+
+    // Strip the tag from the reply before sending to the frontend so the user
+    // never sees the raw signal — they only see the clean assessment text.
+    const cleanReply = reply.replace(END_SIGNAL, '').trim();
+
+    return { reply: cleanReply, history, isComplete };
+  } catch (error) {
+    throw new Error(`Chat message failed: ${error.message}`);
+  }
+}
+
 module.exports = {
   analyzeResumeAndJD,
   generateInterviewQuestions,
   evaluateAnswer,
   generateCoverLetter,
+  startInterviewSession,
+  sendChatMessage,
 };

@@ -19,6 +19,24 @@ const resultSchema = new mongoose.Schema(
   { _id: false }   // no extra _id per result entry
 );
 
+/**
+ * Subdocument schema for a single turn in a Gemini multi-turn chat.
+ * role: 'user' | 'model' — mirrors the Gemini SDK's history format exactly,
+ * so we can reload history directly into model.startChat({ history }).
+ */
+const chatMessageSchema = new mongoose.Schema(
+  {
+    role:  { type: String, enum: ['user', 'model'], required: true },
+    parts: [
+      {
+        text: { type: String, required: true },
+        _id:  false,
+      },
+    ],
+  },
+  { _id: false }
+);
+
 const sessionSchema = new mongoose.Schema(
   {
     userId: {
@@ -62,9 +80,15 @@ const sessionSchema = new mongoose.Schema(
     coverLetter: {
       type: String,
     },
+    /**
+     * chatHistory persists the full Gemini conversation for this session.
+     * On each /chat request we reload this array into startChat({ history })
+     * so the AI remembers everything said earlier in the interview.
+     */
+    chatHistory: [chatMessageSchema],
     status: {
       type: String,
-      enum: ['analyzed', 'in_progress', 'completed'],
+      enum: ['analyzed', 'in_progress', 'chat_in_progress', 'completed'],
       default: 'analyzed',
     },
   },
