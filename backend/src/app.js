@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyze');
 const interviewRoutes = require('./routes/interview');
 const paymentRoutes = require('./routes/payment');
+const uploadRoutes = require('./routes/upload');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/analyze', aiLimiter, analyzeRoutes);
 app.use('/api/interview', aiLimiter, interviewRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api', contactRoute);
 
 // ─── Global Error Handler (must be registered LAST) ─────────────────────────

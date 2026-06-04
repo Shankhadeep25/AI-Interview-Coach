@@ -45,7 +45,7 @@ export const auth = {
   me: () => api.get('/api/auth/me'),
 };
 
-// ─── Analyze ─────────────────────────────────────────────────────────────────
+// ─── AI Analysis ─────────────────────────────────────────────────────────────
 export const analyze = {
   run: (data: {
     jobTitle: string;
@@ -60,6 +60,17 @@ export const analyze = {
   getSessions: () => api.get('/api/analyze/sessions'),
 
   getSession: (id: string) => api.get(`/api/analyze/sessions/${id}`),
+};
+
+// ─── File Uploads ────────────────────────────────────────────────────────────
+export const upload = {
+  extractText: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/api/upload/extract-text', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // ─── Interview ───────────────────────────────────────────────────────────────

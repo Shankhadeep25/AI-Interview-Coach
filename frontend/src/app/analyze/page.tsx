@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { analyze, interview } from '@/lib/api';
+import { analyze, interview, upload } from '@/lib/api';
 import AnalysisSummary from '@/components/AnalysisSummary';
 import type { AnalysisResult } from '@/lib/types';
 import toast from 'react-hot-toast';
-import { Loader2, Send, MessageSquare, FileEdit, Copy, X } from 'lucide-react';
+import { Loader2, Send, MessageSquare, FileEdit, Copy, X, UploadCloud, FileText } from 'lucide-react';
 import { AxiosError } from 'axios';
 
 export default function AnalyzePage() {
@@ -37,6 +37,10 @@ function AnalyzeContent() {
   const [coverLetterData, setCoverLetterData] = useState<{ subject: string; coverLetter: string } | null>(null);
   const [clLoading, setClLoading] = useState(false);
   const [interviewLoading, setInterviewLoading] = useState(false);
+
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   // Load existing session if ?session= param
   useEffect(() => {
@@ -110,6 +114,51 @@ function AnalyzeContent() {
     toast.success('Copied to clipboard!');
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+      toast.error('Only PDF, DOCX, and TXT files are supported.');
+      return;
+    }
+
+    await extractResumeText(file);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await extractResumeText(file);
+  };
+
+  const extractResumeText = async (file: File) => {
+    setExtracting(true);
+    try {
+      const res = await upload.extractText(file);
+      setForm((prev) => ({ ...prev, resumeText: res.data.text }));
+      toast.success('Resume text extracted successfully!');
+    } catch (err) {
+      const msg = err instanceof AxiosError ? err.response?.data?.error : 'Failed to extract text';
+      toast.error(msg || 'Failed to extract text');
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Step 1: Input Form */}
@@ -136,10 +185,44 @@ function AnalyzeContent() {
               <textarea required rows={8} value={form.jobDescription} onChange={(e) => setForm({ ...form, jobDescription: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none" placeholder="Paste the full job description here..." />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Resume Text</label>
-              <textarea required rows={8} value={form.resumeText} onChange={(e) => setForm({ ...form, resumeText: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none" placeholder="Paste your resume here..." />
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-300">Resume Content</label>
+              
+              {/* Drag and drop zone */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-200 p-6 flex flex-col items-center justify-center gap-3 text-center cursor-pointer ${
+                  isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-800/20 hover:bg-slate-800/40'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handleFileChange}
+                />
+                <div className={`p-3 rounded-full ${isDragging ? 'bg-indigo-500/20' : 'bg-slate-800'}`}>
+                  {extracting ? (
+                    <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+                  ) : (
+                    <UploadCloud className={`w-6 h-6 ${isDragging ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {extracting ? 'Extracting text...' : 'Click or drag resume file to extract text'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">Supports PDF, DOCX, TXT (Max 5MB)</p>
+                </div>
+              </div>
+
+              {/* Text area fallback */}
+              <div className="relative">
+                <textarea required rows={8} value={form.resumeText} onChange={(e) => setForm({ ...form, resumeText: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none font-mono text-sm" placeholder="Paste your resume here, or drop a file above to auto-extract..." />
+              </div>
             </div>
             <button type="submit" disabled={loading}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold hover:shadow-lg hover:shadow-indigo-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
