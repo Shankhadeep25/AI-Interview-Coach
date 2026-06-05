@@ -60,6 +60,7 @@ export const analyze = {
   getSessions: () => api.get('/api/analyze/sessions'),
 
   getSession: (id: string) => api.get(`/api/analyze/sessions/${id}`),
+  getAnalytics: () => api.get('/api/analyze/analytics'),
 };
 
 // ─── File Uploads ────────────────────────────────────────────────────────────
@@ -103,9 +104,9 @@ export const interview = {
 
   // ── Phase 2: streaming conversational chat ─────────────────────────────────
   // chatMessageStream: uses native fetch to read the SSE stream
-  chatMessageStream: async (sessionId: string, message: string) => {
-    const baseUrl = process.env.NODE_ENV === 'production' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
-    return fetch(`${baseUrl}/api/interview/chat/message`, {
+  chatMessageStream: (sessionId: string, message: string) => {
+    // We must use native fetch for streaming
+    return fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/interview/chat/message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -114,6 +115,7 @@ export const interview = {
       body: JSON.stringify({ sessionId, message }),
     });
   },
+  endChatMessage: (sessionId: string) => api.post('/api/interview/chat/end', { sessionId }),
 };
 
 // ─── Payment ─────────────────────────────────────────────────────────────────

@@ -213,6 +213,19 @@ export default function InterviewPage() {
     }
   };
 
+  const handleEndInterview = async () => {
+    try {
+      setIsSending(true);
+      await interview.endChatMessage(sessionId);
+      setIsComplete(true);
+      toast.success('Interview manually ended! Check your final assessment above.');
+    } catch (err) {
+      toast.error('Failed to end interview.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -289,7 +302,7 @@ export default function InterviewPage() {
 
   // ── Chat UI ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
+    <div className="fixed inset-0 top-16 flex flex-col bg-slate-950 z-40">
 
       {/* Header */}
       <div className="flex-shrink-0 border-b border-white/10 bg-slate-950/80 backdrop-blur px-4 py-3">
@@ -424,6 +437,14 @@ export default function InterviewPage() {
                 {isSending
                   ? <Loader2 className="w-4 h-4 text-white animate-spin" />
                   : <Send className="w-4 h-4 text-white" />}
+              </button>
+              <button
+                onClick={handleEndInterview}
+                disabled={isSending}
+                title="End Interview"
+                className="flex-shrink-0 w-11 h-11 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 text-slate-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 9h6v6H9z"/></svg>
               </button>
             </div>
           )}

@@ -257,5 +257,26 @@ const chatMessage = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/interview/chat/end
+ * Manually force the chat session to be marked as completed
+ */
+const endChatSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const session = await Session.findById(sessionId);
+    if (!session) return res.status(404).json({ error: 'Session not found.' });
+    if (session.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
 
-module.exports = { generateQuestions, evaluate, completeSession, startChat, chatMessage };
+    session.status = 'completed';
+    await session.save();
+
+    res.json({ success: true, isComplete: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to end chat session: ' + error.message });
+  }
+};
+
+module.exports = { generateQuestions, evaluate, completeSession, startChat, chatMessage, endChatSession };

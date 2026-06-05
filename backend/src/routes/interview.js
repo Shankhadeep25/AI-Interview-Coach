@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { generateQuestions, evaluate, completeSession, startChat, chatMessage } = require('../controllers/interviewController');
+const { generateQuestions, evaluate, completeSession, startChat, chatMessage, endChatSession } = require('../controllers/interviewController');
 const authMiddleware = require('../middleware/authMiddleware');
 const validate = require('../middleware/validate');
 const { generateSchema, evaluateSchema, completeSchema, chatStartSchema, chatMessageSchema } = require('../validators/interviewValidator');
@@ -16,6 +16,7 @@ router.post('/complete',  validate(completeSchema),  completeSession);
 // ── Phase 1: conversational multi-turn interview ─────────────────────────────
 router.post('/chat/start',   validate(chatStartSchema),   startChat);
 router.post('/chat/message', validate(chatMessageSchema), chatMessage);
+router.post('/chat/end', endChatSession);
 
 module.exports = router;
 

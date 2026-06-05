@@ -80,9 +80,14 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-white">Welcome back, {user.name}</h1>
           <p className="text-slate-400 mt-1">Track your interview preparation progress</p>
         </div>
-        <Link href="/analyze" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
-          <Plus className="w-5 h-5" /> New Session
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/analytics" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/80 border border-white/10 text-slate-300 font-semibold hover:bg-slate-700 hover:text-white transition-all">
+            <BarChart3 className="w-5 h-5" /> Analytics
+          </Link>
+          <Link href="/analyze" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
+            <Plus className="w-5 h-5" /> New Session
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

@@ -32,19 +32,19 @@ const isTest = process.env.NODE_ENV === 'test';
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isTest ? 0 : 100, // 0 = disabled
+  max: isTest ? 0 : 1000, // 0 = disabled, increased from 100 to 1000 for flexibility
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 if (!isTest) app.use(globalLimiter);
 
-// ─── AI Rate Limiter: 10 req / 1 min ────────────────────────────────────────
+// ─── AI Rate Limiter: 50 req / 1 min ────────────────────────────────────────
 const aiLimiter = isTest
   ? (_req, _res, next) => next() // no-op in tests
   : rateLimit({
       windowMs: 60 * 1000,
-      max: 10,
+      max: 50, // Increased from 10 to 50 for rapid chat messaging
       message: { error: 'AI rate limit reached. Please wait a moment and try again.' },
       standardHeaders: true,
       legacyHeaders: false,

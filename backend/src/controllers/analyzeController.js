@@ -109,4 +109,61 @@ const getSession = async (req, res) => {
   }
 };
 
-module.exports = { analyze, coverLetter, getSessions, getSession };
+/**
+ * GET /api/analyze/analytics
+ */
+const getAnalytics = async (req, res) => {
+  try {
+    const sessions = await Session.find({ userId: req.user._id, status: 'completed' })
+      .sort({ createdAt: 1 }); // Oldest first for chronological progress
+
+    const progress = sessions.map(s => ({
+      date: new Date(s.createdAt).toLocaleDateString(),
+      score: s.matchScore || 0,
+      jobTitle: s.jobTitle
+    }));
+
+    // Aggregate keywords
+    const matchedCounts = {};
+    const missingCounts = {};
+
+    sessions.forEach(s => {
+      if (s.analysisResult?.keywords) {
+        const { matched, missing } = s.analysisResult.keywords;
+        if (Array.isArray(matched)) {
+          matched.forEach(k => {
+            const lower = k.toLowerCase();
+            matchedCounts[lower] = (matchedCounts[lower] || 0) + 1;
+          });
+        }
+        if (Array.isArray(missing)) {
+          missing.forEach(k => {
+            const lower = k.toLowerCase();
+            missingCounts[lower] = (missingCounts[lower] || 0) + 1;
+          });
+        }
+      }
+    });
+
+    // Sort and take top 6
+    const topStrengths = Object.entries(matchedCounts)
+      .map(([subject, count]) => ({ subject, count, fullMark: sessions.length }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    const topImprovements = Object.entries(missingCounts)
+      .map(([subject, count]) => ({ subject, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    res.json({
+      progress,
+      strengths: topStrengths,
+      improvements: topImprovements
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch analytics: ' + error.message });
+  }
+};
+
+module.exports = { analyze, coverLetter, getSessions, getSession, getAnalytics };
