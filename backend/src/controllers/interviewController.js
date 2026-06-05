@@ -191,34 +191,69 @@ const chatMessage = async (req, res) => {
     }
 
     // Count how many real answers the candidate has given.
-    // chatHistory[0] is always the priming context message (resume + JD),
-    // so we skip index 0 when counting user turns.
     const userAnswerCount = session.chatHistory.filter(
       (m, i) => m.role === 'user' && i > 0
     ).length;
 
-    // If the candidate has already answered MAX_QUESTIONS questions,
-    // override what we send to Gemini to force an immediate conclusion.
-    // We still include the candidate's actual answer so Alex can reference
-    // it in the final assessment — we just add a system directive after it.
     const messageToSend = userAnswerCount >= MAX_QUESTIONS
       ? `${message}\n\n[SYSTEM DIRECTIVE: The candidate has now answered the maximum number of questions (${MAX_QUESTIONS}). You must conclude the interview immediately. Provide your final overall assessment and composite score now, then append [INTERVIEW_COMPLETE] on the last line. Do not ask any more questions.]`
       : message;
 
-    const { reply, history, isComplete } = await geminiService.sendChatMessage(
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const { stream, chat, handleFunctionCalls } = await geminiService.sendChatMessageStream(
       session.chatHistory,
       messageToSend
     );
 
-    // Persist updated history so next message has full context
+    let fullReply = '';
+
+    for await (const result of handleFunctionCalls(stream)) {
+      if (result.toolAction) {
+        res.write(`data: ${JSON.stringify({ toolAction: result.toolAction })}\n\n`);
+      } else if (result.text) {
+        fullReply += result.text;
+        res.write(`data: ${JSON.stringify({ text: result.text })}\n\n`);
+      }
+    }
+
+    // Detect interview completion
+    const END_SIGNAL = '[INTERVIEW_COMPLETE]';
+    let isComplete = false;
+    let cleanReply = fullReply;
+
+    if (fullReply.includes(END_SIGNAL)) {
+      isComplete = true;
+      cleanReply = fullReply.replace(END_SIGNAL, '').trim();
+    }
+
+    const history = await chat.getHistory();
+    // Clean up the tag from the saved history so it's not present when reloaded
+    const lastMessage = history[history.length - 1];
+    if (lastMessage && lastMessage.role === 'model') {
+      lastMessage.parts[0].text = cleanReply;
+    }
+
+    // Persist updated history
     session.chatHistory = history;
     if (isComplete) session.status = 'completed';
     await session.save();
 
-    // Also expose the current question count so the frontend can show progress
-    res.json({ reply, isComplete, questionCount: userAnswerCount + 1, maxQuestions: MAX_QUESTIONS });
+    // Send final completion event
+    res.write(`data: ${JSON.stringify({ done: true, isComplete, questionCount: userAnswerCount + 1, maxQuestions: MAX_QUESTIONS })}\n\n`);
+    res.end();
   } catch (error) {
-    res.status(500).json({ error: 'Chat message failed: ' + error.message });
+    // If headers haven't been sent, we can return 500 JSON.
+    // If they have, we must send an error event and end.
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Chat message failed: ' + error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: 'Stream failed: ' + error.message })}\n\n`);
+      res.end();
+    }
   }
 };
 

@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { v4: uuidv4 } = require('uuid');
+const { executeCode, verifyFact } = require('../utils/tools');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -16,6 +17,45 @@ const SYSTEM_INSTRUCTION = `Your name is Alex. You are a senior technical recrui
 const chatModel = genAI.getGenerativeModel({
   model: 'gemini-2.5-flash',
   systemInstruction: SYSTEM_INSTRUCTION,
+  generationConfig: {
+    thinkingConfig: { thinkingBudget: 0 },
+  },
+});
+
+const chatModelTools = [
+  {
+    functionDeclarations: [
+      {
+        name: "execute_code",
+        description: "Executes a snippet of code provided by the candidate in a specific language (e.g., javascript, python) and returns the standard output or compiler errors. Use this autonomously to verify if the candidate's code actually works.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            language: { type: "STRING", description: "The programming language (e.g., javascript, python)" },
+            code: { type: "STRING", description: "The source code to execute" }
+          },
+          required: ["language", "code"]
+        }
+      },
+      {
+        name: "verify_technical_fact",
+        description: "Searches Wikipedia to verify a technical fact, concept, or term mentioned by the candidate.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: { type: "STRING", description: "The technical term or concept to search for" }
+          },
+          required: ["query"]
+        }
+      }
+    ]
+  }
+];
+
+const agenticChatModel = genAI.getGenerativeModel({
+  model: 'gemini-2.5-flash',
+  systemInstruction: SYSTEM_INSTRUCTION,
+  tools: chatModelTools,
   generationConfig: {
     thinkingConfig: { thinkingBudget: 0 },
   },
@@ -354,6 +394,74 @@ async function sendChatMessage(chatHistory, userMessage) {
   }
 }
 
+// ── 7. Continue a Conversational Interview (Streaming) ───────────────────────
+/**
+ * Same as sendChatMessage, but returns the stream iterable.
+ * The caller is responsible for iterating over the chunks.
+ *
+ * @param {Array}  chatHistory  - The history array stored in Session.chatHistory
+ * @param {string} userMessage  - The candidate's latest answer
+ * @returns {Promise<{ stream: AsyncGenerator, chat: Object }>}
+ */
+async function sendChatMessageStream(chatHistory, userMessage) {
+  try {
+    // Rehydrate the chat from MongoDB-stored history, using the agentic model.
+    const chat = agenticChatModel.startChat({ history: chatHistory });
+    const result = await chat.sendMessageStream(userMessage);
+
+    return { 
+      stream: result.stream, 
+      chat,
+      handleFunctionCalls: async function* (initialStream) {
+        let functionCall = null;
+
+        // Iterate over the initial stream
+        for await (const chunk of initialStream) {
+          if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+            functionCall = chunk.functionCalls[0];
+            break; // Stop yielding text, we need to handle the function
+          }
+          yield { text: chunk.text() };
+        }
+
+        if (functionCall) {
+          // Yield a tool action so the frontend can display an indicator
+          const toolActionText = functionCall.name === 'execute_code' 
+            ? 'Running code...' 
+            : `Fact-checking ${functionCall.args.query}...`;
+            
+          yield { toolAction: toolActionText };
+
+          // Execute the tool locally
+          let toolResult = {};
+          if (functionCall.name === 'execute_code') {
+            toolResult = await executeCode(functionCall.args.language, functionCall.args.code);
+          } else if (functionCall.name === 'verify_technical_fact') {
+            toolResult = await verifyFact(functionCall.args.query);
+          }
+
+          // Send the result back to the model to continue the conversation
+          const functionResponseResult = await chat.sendMessageStream([{
+            functionResponse: {
+              name: functionCall.name,
+              response: toolResult
+            }
+          }]);
+
+          // Stream the resulting text
+          for await (const chunk of functionResponseResult.stream) {
+             if (chunk.text) {
+                yield { text: chunk.text() };
+             }
+          }
+        }
+      }
+    };
+  } catch (error) {
+    throw new Error(`Chat message stream failed: ${error.message}`);
+  }
+}
+
 module.exports = {
   analyzeResumeAndJD,
   generateInterviewQuestions,
@@ -361,4 +469,5 @@ module.exports = {
   generateCoverLetter,
   startInterviewSession,
   sendChatMessage,
+  sendChatMessageStream,
 };

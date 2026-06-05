@@ -40,6 +40,7 @@ export default function InterviewPage() {
   const [loading, setLoading] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [questionCount, setQuestionCount] = useState(0);
+  const [currentToolAction, setCurrentToolAction] = useState<string | null>(null);
   const MAX_QUESTIONS = 10;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -126,24 +127,85 @@ export default function InterviewPage() {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      const res = await interview.chatMessage(sessionId, text);
-      const { reply, isComplete: done, questionCount: qCount, maxQuestions: qMax } = res.data;
+      const res = await interview.chatMessageStream(sessionId, text);
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to start stream');
+      }
+
+      // Add empty AI message immediately so it can be filled chunk by chunk
       setMessages((prev) => [
         ...prev,
-        { role: 'model', text: reply, timestamp: new Date() },
+        { role: 'model', text: '', timestamp: new Date() },
       ]);
 
-      if (qCount) setQuestionCount(qCount);
-      if (qMax) { /* already constant */ }
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let buffer = '';
 
-      if (done) {
-        setIsComplete(true);
-        toast.success('Interview complete! Check your final assessment above.');
+      while (reader && !done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          
+          // SSE events are separated by double newlines
+          let doubleNewlineIdx;
+          while ((doubleNewlineIdx = buffer.indexOf('\n\n')) >= 0) {
+            const eventBlock = buffer.slice(0, doubleNewlineIdx);
+            buffer = buffer.slice(doubleNewlineIdx + 2);
+
+            const lines = eventBlock.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    toast.error(data.error);
+                    break;
+                  }
+                  
+                  if (data.toolAction) {
+                    setCurrentToolAction(data.toolAction);
+                  }
+
+                  if (data.text) {
+                    setCurrentToolAction(null); // clear tool action once text starts
+                    setMessages((prev) => {
+                      const newMessages = [...prev];
+                      const lastIdx = newMessages.length - 1;
+                      if (lastIdx >= 0) {
+                        newMessages[lastIdx] = {
+                          ...newMessages[lastIdx],
+                          text: newMessages[lastIdx].text + data.text,
+                        };
+                      }
+                      return newMessages;
+                    });
+                  }
+
+                  if (data.done) {
+                    if (data.questionCount) setQuestionCount(data.questionCount);
+                    if (data.isComplete) {
+                      setIsComplete(true);
+                      toast.success('Interview complete! Check your final assessment above.');
+                    }
+                  }
+                } catch (e) {
+                  console.error('Failed to parse SSE data:', e, line);
+                }
+              }
+            }
+          }
+        }
       }
     } catch (err) {
-      const msg = err instanceof AxiosError ? err.response?.data?.error : 'Failed to send message';
-      toast.error(msg || 'Failed to send message');
+      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      toast.error(msg);
       // Remove the optimistic user message on failure
       setMessages((prev) => prev.filter((m) => m !== userMsg));
     } finally {

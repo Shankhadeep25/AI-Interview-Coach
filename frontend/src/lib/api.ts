@@ -100,6 +100,20 @@ export const interview = {
   // Returns { reply: string, isComplete: boolean }
   chatMessage: (sessionId: string, message: string) =>
     api.post('/api/interview/chat/message', { sessionId, message }),
+
+  // ── Phase 2: streaming conversational chat ─────────────────────────────────
+  // chatMessageStream: uses native fetch to read the SSE stream
+  chatMessageStream: async (sessionId: string, message: string) => {
+    const baseUrl = process.env.NODE_ENV === 'production' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+    return fetch(`${baseUrl}/api/interview/chat/message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ sessionId, message }),
+    });
+  },
 };
 
 // ─── Payment ─────────────────────────────────────────────────────────────────
