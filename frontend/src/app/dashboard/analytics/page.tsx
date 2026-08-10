@@ -17,8 +17,7 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar,
-  Legend
+  Radar
 } from 'recharts';
 
 interface ProgressData {
@@ -122,7 +121,7 @@ export default function AnalyticsPage() {
                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
                 itemStyle={{ color: '#818cf8' }}
                 labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                formatter={(value: any, name: any, props: any) => [`${value}%`, props.payload.jobTitle]}
+                formatter={(value, _name, item) => [`${value}%`, item?.payload?.jobTitle || '']}
               />
               <Line type="monotone" dataKey="score" stroke="#818cf8" strokeWidth={3} activeDot={{ r: 8 }} />
             </LineChart>

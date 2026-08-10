@@ -210,6 +210,7 @@ export default function InterviewPage() {
       setMessages((prev) => prev.filter((m) => m !== userMsg));
     } finally {
       setIsSending(false);
+      setCurrentToolAction(null);
     }
   };
 
@@ -219,7 +220,7 @@ export default function InterviewPage() {
       await interview.endChatMessage(sessionId);
       setIsComplete(true);
       toast.success('Interview manually ended! Check your final assessment above.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to end interview.');
     } finally {
       setIsSending(false);
@@ -379,10 +380,19 @@ export default function InterviewPage() {
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-4 h-4 text-white" />
               </div>
-              <div className="bg-slate-800/80 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="bg-slate-800/80 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
+                {currentToolAction ? (
+                  <span className="text-xs text-indigo-300 animate-pulse flex items-center gap-2 font-medium">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    {currentToolAction}
+                  </span>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </>
+                )}
               </div>
             </div>
           )}

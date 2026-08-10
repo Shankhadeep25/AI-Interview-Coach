@@ -6,7 +6,7 @@ import { analyze, interview, upload } from '@/lib/api';
 import AnalysisSummary from '@/components/AnalysisSummary';
 import type { AnalysisResult } from '@/lib/types';
 import toast from 'react-hot-toast';
-import { Loader2, Send, MessageSquare, FileEdit, Copy, X, UploadCloud, FileText } from 'lucide-react';
+import { Loader2, Send, MessageSquare, FileEdit, Copy, X, UploadCloud } from 'lucide-react';
 import { AxiosError } from 'axios';
 
 export default function AnalyzePage() {
